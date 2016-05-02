@@ -1,0 +1,4 @@
+include contrib/pylogchop
+include contrib/pylogchop.ini
+include contrib/template.json
+include LICENSE.txt

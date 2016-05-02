@@ -1,0 +1,13 @@
+{
+  "tags": "$TAGS",
+  "first_line": "$FIRST_LINE",
+  "other_lines": "$OTHER_LINES",
+  "regex_string": "$RE_1_STR",
+  "regex_int": "$RE_2_INT",
+  "regex_float": "$RE_3_FLOAT",
+  "nested": {
+    "regex_string": "$RE_1_STR",
+    "regex_int": "$RE_2_INT",
+    "regex_float": "$RE_3_FLOAT"
+  }
+}
