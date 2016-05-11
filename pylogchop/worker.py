@@ -171,6 +171,8 @@ class Worker(threading.Thread):
                 self.chk_stat()
             if not self._fd:
                 self.open()
+            if not self._fd:
+                continue
             self._pos = self._fd.tell()
             line = self._fd.readline()
             if line:

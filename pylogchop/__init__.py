@@ -3,6 +3,7 @@ __author__ = 'schlitzer'
 import argparse
 import configparser
 from collections import deque
+import glob
 import json
 import os
 import signal
@@ -86,6 +87,7 @@ class PyLogChop(object):
         self._terminate = False
         self._worker = dict()
         self.log = logging.getLogger('pylogchop')
+        self.log.setLevel("DEBUG")
 
     def _app_logging(self):
         logfmt = logging.Formatter('%(asctime)sUTC - %(threadName)s - %(levelname)s - %(message)s')
@@ -102,6 +104,70 @@ class PyLogChop(object):
         self.log.setLevel(aap_level)
         self.log.debug("file logger is up")
 
+    def _cfg_open(self, include=None):
+        config = configparser.ConfigParser()
+        try:
+            with open(self._config_file, 'r') as f:
+                try:
+                    config.read_file(f)
+                    if include:
+                        files = glob.glob(include)
+                        self.log.info("reading additional config files: {0}".format(files))
+                        config.read(files)
+                    self._config = config
+                    self._config_dict = self._cfg_to_dict(self.config)
+                except (
+                        configparser.DuplicateOptionError,
+                        configparser.DuplicateSectionError
+                ) as err:
+                    self.log.error("error parsing configuration {0}".format(err))
+                    return
+        except OSError as err:
+            self.log.error("could not read configuration: {0}".format(err))
+            return
+        try:
+            jsonschema.validate(self.config_dict['main'], CHECK_CONFIG_MAIN)
+        except jsonschema.exceptions.ValidationError as err:
+            self.log.error("main section: {0}".format(err))
+            return
+        try:
+            if not include:
+                include = config.get('main', 'include')
+                if include != "":
+                    self.log.info("rereading configuration with include files matching {0}".format(include))
+                    return self._cfg_open(include)
+        except configparser.NoOptionError:
+            pass
+        return True
+
+    @staticmethod
+    def _cfg_to_dict(config):
+        result = {}
+        for section in config.sections():
+            result[section] = {}
+            for option in config.options(section):
+                try:
+                    result[section][option] = config.getint(section, option)
+                    continue
+                except ValueError:
+                    pass
+                try:
+                    result[section][option] = config.getfloat(section, option)
+                    continue
+                except ValueError:
+                    pass
+                try:
+                    result[section][option] = config.getboolean(section, option)
+                    continue
+                except ValueError:
+                    pass
+                try:
+                    result[section][option] = config.get(section, option)
+                    continue
+                except ValueError:
+                    pass
+        return result
+
     def _process_message(self):
         try:
             msg = self._deque.popleft()
@@ -115,6 +181,26 @@ class PyLogChop(object):
         except IndexError:
             time.sleep(0.1)
             return False
+
+    def _reload(self, sig, frm):
+        self.log.info("reloading configuration")
+        if not self._cfg_open():
+            return
+        for section in self._config_dict.keys():
+            if section.endswith(':source'):
+                if section in self._worker:
+                    self._worker_reload(section)
+                else:
+                    self._worker_start(section)
+        term = []
+        for section in self._worker.keys():
+            if section not in self._config_dict.keys():
+                self._worker_stop(section)
+                self._worker_join(section)
+                term.append(section)
+        for worker in term:
+            self._worker.pop(worker)
+        self.log.info("done reloading configuration")
 
     def _run(self):
         if 'file:logging' in self._config_dict.keys():
@@ -138,32 +224,6 @@ class PyLogChop(object):
             if not self._process_message():
                 break
         self.log.info("successfully shutdown")
-
-    def _reload(self, sig, frm):
-        self.log.info("reloading configuration")
-        try:
-            cfg = configparser.ConfigParser()
-            with open(self._config_file, 'r') as f:
-                cfg.read_file(f)
-            self._config = cfg
-        except OSError as err:
-            self.log.error("could not read configuration".format(err))
-        self._config_dict = self._cfg_to_dict(self.config)
-        for section in self._config_dict.keys():
-            if section.endswith(':source'):
-                if section in self._worker:
-                    self._worker_reload(section)
-                else:
-                    self._worker_start(section)
-        term = []
-        for section in self._worker.keys():
-            if section not in self._config_dict.keys():
-                self._worker_stop(section)
-                self._worker_join(section)
-                term.append(section)
-        for worker in term:
-            self._worker.pop(worker)
-        self.log.info("done reloading configuration")
 
     def _quit(self, sig, frm):
         self._terminate = True
@@ -222,34 +282,6 @@ class PyLogChop(object):
         self._worker[source].join()
         self.log.info("worker {0} stopped".format(source))
 
-    @staticmethod
-    def _cfg_to_dict(config):
-        result = {}
-        for section in config.sections():
-            result[section] = {}
-            for option in config.options(section):
-                try:
-                    result[section][option] = config.getint(section, option)
-                    continue
-                except ValueError:
-                    pass
-                try:
-                    result[section][option] = config.getfloat(section, option)
-                    continue
-                except ValueError:
-                    pass
-                try:
-                    result[section][option] = config.getboolean(section, option)
-                    continue
-                except ValueError:
-                    pass
-                try:
-                    result[section][option] = config.get(section, option)
-                    continue
-                except ValueError:
-                    pass
-        return result
-
     @property
     def config(self):
         return self._config
@@ -297,13 +329,10 @@ class PyLogChop(object):
             sys.exit(1)
 
     def start(self):
-        with open(self._config_file, 'r') as f:
-            self.config.read_file(f)
-        self._config_dict = self._cfg_to_dict(self.config)
-        try:
-            jsonschema.validate(self.config_dict['main'], CHECK_CONFIG_MAIN)
-        except jsonschema.exceptions.ValidationError as err:
-            print("main section: {0}".format(err))
+        console_log = logging.StreamHandler()
+        console_log.setLevel('DEBUG')
+        self.log.addHandler(console_log)
+        if not self._cfg_open():
             sys.exit(1)
         daemon = DaemonContext(pidfile=PidFile(self.pid))
         if self.nodaemon:
@@ -314,4 +343,5 @@ class PyLogChop(object):
         daemon.open()
         signal.signal(signal.SIGHUP, self._reload)
         signal.signal(signal.SIGTERM, self._quit)
+        self.log.removeHandler(console_log)
         self._run()

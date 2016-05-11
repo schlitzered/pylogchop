@@ -10,6 +10,9 @@ CHECK_CONFIG_MAIN = {
     "properties": {
         "dlog_file": {
             "type": "string",
+        },
+        "include": {
+            "type": "string",
         }
     }
 }
