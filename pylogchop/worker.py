@@ -6,18 +6,8 @@ import json.decoder
 import logging
 import os
 import re
-import sys
 import threading
 import time
-
-PY3 = sys.version_info[0] == 3
-
-if PY3:
-    string_types = str
-else:
-    string_types = basestring
-
-default_template = {}
 
 
 class Worker(threading.Thread):
@@ -84,12 +74,12 @@ class Worker(threading.Thread):
         for key, value in msg.items():
             if isinstance(value, dict):
                 self._build_message(msg[key])
-            elif isinstance(value, string_types):
-                if value == u"$FIRST_LINE":
+            elif isinstance(value, str):
+                if value == "$FIRST_LINE":
                     msg[key] = self._data['first_line']
-                elif value == u"OTHER_LINES":
+                elif value == "OTHER_LINES":
                     msg[key] = self._data['other_lines']
-                elif value == u"$TAGS":
+                elif value == "$TAGS":
                     msg[key] = self.tags
                 elif value.startswith('$RE_'):
                     value = value.split('_')

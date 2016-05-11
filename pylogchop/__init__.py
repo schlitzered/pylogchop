@@ -143,7 +143,8 @@ class PyLogChop(object):
         self.log.info("reloading configuration")
         try:
             cfg = configparser.ConfigParser()
-            cfg.read_file(open(self._config_file))
+            with open(self._config_file, 'r') as f:
+                cfg.read_file(f)
             self._config = cfg
         except OSError as err:
             self.log.error("could not read configuration".format(err))
@@ -296,7 +297,8 @@ class PyLogChop(object):
             sys.exit(1)
 
     def start(self):
-        self.config.read_file(open(self._config_file))
+        with open(self._config_file, 'r') as f:
+            self.config.read_file(f)
         self._config_dict = self._cfg_to_dict(self.config)
         try:
             jsonschema.validate(self.config_dict['main'], CHECK_CONFIG_MAIN)
