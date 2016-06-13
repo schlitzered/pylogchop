@@ -43,8 +43,8 @@ def main():
     quit_parser = subparsers.add_parser('quit', help='Stop PyLogChop')
     quit_parser.set_defaults(method='quit')
 
-    quit_parser = subparsers.add_parser('reload', help='Reload PyLogChop')
-    quit_parser.set_defaults(method='reload')
+    reload_parser = subparsers.add_parser('reload', help='Reload PyLogChop')
+    reload_parser.set_defaults(method='reload')
 
     start_parser = subparsers.add_parser('start', help='Start PyLogChop')
     start_parser.set_defaults(method='start')
@@ -96,7 +96,7 @@ class PyLogChop(object):
         aap_level = self.config.get('file:logging', 'level')
         app_log = self.config.get('file:logging', 'file')
         app_retention = self.config.getint('file:logging', 'retention')
-        app_handlers.append(TimedRotatingFileHandler(app_log, 'd', app_retention))
+        app_handlers.append(TimedRotatingFileHandler(app_log, 'd', 1, app_retention))
 
         for handler in app_handlers:
             handler.setFormatter(logfmt)
@@ -226,6 +226,7 @@ class PyLogChop(object):
         self.log.info("successfully shutdown")
 
     def _quit(self, sig, frm):
+        self.log.info("prepering shutdown")
         self._terminate = True
 
     def _worker_cfg_ok(self, source):

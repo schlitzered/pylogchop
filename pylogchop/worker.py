@@ -77,7 +77,7 @@ class Worker(threading.Thread):
             elif isinstance(value, str):
                 if value == "$FIRST_LINE":
                     msg[key] = self._data['first_line']
-                elif value == "OTHER_LINES":
+                elif value == "$OTHER_LINES":
                     msg[key] = self._data['other_lines']
                 elif value == "$TAGS":
                     msg[key] = self.tags
