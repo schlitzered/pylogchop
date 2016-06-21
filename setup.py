@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pylogchop',
-    version='0.0.2',
+    version='0.0.3',
     description='Log file to syslog shipper',
     long_description="""
 Parses Logfiles, and creates a JSON representation, that is send to syslog

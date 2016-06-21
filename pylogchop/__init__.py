@@ -112,7 +112,8 @@ class PyLogChop(object):
                     config.read_file(f)
                     if include:
                         files = glob.glob(include)
-                        self.log.info("reading additional config files: {0}".format(files))
+                        for add_config in files:
+                            self.log.info("reading additional config file: {0}".format(add_config))
                         config.read(files)
                     self._config = config
                     self._config_dict = self._cfg_to_dict(self.config)

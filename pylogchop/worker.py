@@ -27,6 +27,7 @@ class Worker(threading.Thread):
         self._pos = None
         self._regex = None
         self._tags = None
+        self._tags_dict = None
         self._template = None
         self.template = template
         self.regex = regex
@@ -34,6 +35,7 @@ class Worker(threading.Thread):
         self.syslog_tag = syslog_tag
         self.syslog_severity = syslog_severity
         self.tags = tags
+        self.tags_dict = tags
         self.terminate = False
 
     @property
@@ -70,6 +72,23 @@ class Worker(threading.Thread):
     def tags(self, tags):
         self._tags = tags.split(',')
 
+    @property
+    def tags_dict(self):
+        return self._tags_dict
+
+    @tags_dict.setter
+    def tags_dict(self, tags):
+        tags_dict = {}
+        tags = tags.split(',')
+        for tag in tags:
+            tag = tag.split(':', 1)
+            if len(tag) != 2:
+                self.log.error("cannot create k,v from tag {0}".format(tag))
+                continue
+            key, value = tag
+            tags_dict[key] = value
+        self._tags_dict = tags_dict
+
     def _build_message(self, msg):
         for key, value in msg.items():
             if isinstance(value, dict):
@@ -81,6 +100,8 @@ class Worker(threading.Thread):
                     msg[key] = self._data['other_lines']
                 elif value == "$TAGS":
                     msg[key] = self.tags
+                elif value == "$TAGS_DICT":
+                    msg[key] = self.tags_dict
                 elif value.startswith('$RE_'):
                     value = value.split('_')
                     if not len(value) == 3:
