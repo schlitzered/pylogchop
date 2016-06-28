@@ -34,8 +34,8 @@ class Worker(threading.Thread):
         self.syslog_facility = syslog_facility
         self.syslog_tag = syslog_tag
         self.syslog_severity = syslog_severity
-        self.tags_dict = None
         self.tags = tags
+        self.tags_dict = tags
         self.terminate = False
 
     @property

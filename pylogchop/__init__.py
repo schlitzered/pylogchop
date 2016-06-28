@@ -272,6 +272,7 @@ class PyLogChop(object):
         conf = self._config_dict[source]
         worker = self._worker[source]
         worker.tags = conf['tags']
+        worker.tags_dict = conf['tags']
         worker.template = conf['template']
         worker.syslog_facility = conf['syslog_facility']
         worker.syslog_severity = conf['syslog_severity']
