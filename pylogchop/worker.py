@@ -34,8 +34,8 @@ class Worker(threading.Thread):
         self.syslog_facility = syslog_facility
         self.syslog_tag = syslog_tag
         self.syslog_severity = syslog_severity
+        self.tags_dict = None
         self.tags = tags
-        self.tags_dict = tags
         self.terminate = False
 
     @property
@@ -71,6 +71,7 @@ class Worker(threading.Thread):
     @tags.setter
     def tags(self, tags):
         self._tags = tags.split(',')
+        self.tags_dict = tags
 
     @property
     def tags_dict(self):
