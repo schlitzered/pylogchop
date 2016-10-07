@@ -1,5 +1,6 @@
 __author__ = 'schlitzer'
 # stdlib
+import codecs
 import copy
 import json
 import json.decoder
@@ -14,12 +15,14 @@ class Worker(threading.Thread):
     def __init__(
             self, file, msgqueue, tags, regex, template,
             syslog_facility, syslog_tag, syslog_severity,
+            encoding
     ):
         super().__init__(name='Worker:'+file)
         self.log = logging.getLogger('pylogchop')
         self._fd = None
         self._file = file
         self._data = None
+        self._encoding = None
         self._msgqueue = msgqueue
         self._st_ino = None
         self._st_dev = None
@@ -29,6 +32,7 @@ class Worker(threading.Thread):
         self._tags = None
         self._tags_dict = None
         self._template = None
+        self.encoding = encoding
         self.template = template
         self.regex = regex
         self.syslog_facility = syslog_facility
@@ -37,6 +41,14 @@ class Worker(threading.Thread):
         self.tags = tags
         self.tags_dict = tags
         self.terminate = False
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
 
     @property
     def regex(self):
@@ -230,7 +242,7 @@ class Worker(threading.Thread):
             self.close()
         self.log.debug("open logfile")
         try:
-            self._fd = open(self._file, 'r')
+            self._fd = codecs.open(self._file, mode='r', encoding=self.encoding, errors='ignore')
             self._fd.seek(0, 2)
             stat = os.stat(self._file)
             self._st_dev = stat.st_dev

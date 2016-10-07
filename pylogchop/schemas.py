@@ -34,27 +34,13 @@ CHECK_CONFIG_LOGGING_FILE = {
         },
         "level": {
             "type": "string",
-        },
-    }
-}
-
-CHECK_CONFIG_LOGGING_SYSLOG = {
-    "type": "object",
-    "additionalProperties": False,
-    "required":  [
-        "facility",
-        "tag",
-        "level"
-    ],
-    "properties": {
-        "facility": {
-            "type": "string"
-        },
-        "tag": {
-            "type": "string",
-        },
-        "level": {
-            "type": "string",
+            "enum": [
+                "CRITICAL",
+                "ERROR",
+                "WARNING",
+                "INFO",
+                "DEBUG"
+            ]
         },
     }
 }
@@ -70,7 +56,13 @@ CHECK_CONFIG_SOURCE = {
         "template",
         "regex"
     ],
+    "optional": [
+        "encoding"
+    ],
     "properties": {
+        "encoding": {
+            "type": "string",
+        },
         "syslog_facility": {
             "type": "string",
             "enum": [
@@ -120,20 +112,4 @@ CHECK_CONFIG_SOURCE = {
             "type": "string",
         },
     }
-}
-
-sample_output = {
-    "first": "first line",
-    "multi": [
-        "second line",
-        "third line",
-        "n´th line"
-    ],
-    "split": {
-
-    },
-    "tags": [
-        "scheme:http",
-        "owner:santander"
-    ],
 }

@@ -1,6 +1,7 @@
 __author__ = 'schlitzer'
 # stdlib
 import argparse
+import codecs
 import configparser
 from collections import deque
 import glob
@@ -92,16 +93,14 @@ class PyLogChop(object):
     def _app_logging(self):
         logfmt = logging.Formatter('%(asctime)sUTC - %(threadName)s - %(levelname)s - %(message)s')
         logfmt.converter = time.gmtime
-        app_handlers = []
         aap_level = self.config.get('file:logging', 'level')
         app_log = self.config.get('file:logging', 'file')
         app_retention = self.config.getint('file:logging', 'retention')
-        app_handlers.append(TimedRotatingFileHandler(app_log, 'd', 1, app_retention))
+        file_handler = TimedRotatingFileHandler(app_log, 'd', 1, app_retention)
+        file_handler.setLevel(aap_level)
+        file_handler.setFormatter(logfmt)
+        self.log.addHandler(file_handler)
 
-        for handler in app_handlers:
-            handler.setFormatter(logfmt)
-            self.log.addHandler(handler)
-        self.log.setLevel(aap_level)
         self.log.debug("file logger is up")
 
     def _cfg_open(self, include=None):
@@ -199,12 +198,17 @@ class PyLogChop(object):
                 self._worker_stop(section)
                 self._worker_join(section)
                 term.append(section)
-        for worker in term:
-            self._worker.pop(worker)
+        for _worker in term:
+            self._worker.pop(_worker)
         self.log.info("done reloading configuration")
 
     def _run(self):
         if 'file:logging' in self._config_dict.keys():
+            try:
+                jsonschema.validate(self._config_dict['file:logging'], CHECK_CONFIG_LOGGING_FILE)
+            except jsonschema.exceptions.ValidationError as err:
+                self.log.fatal("invalid file:logging section: {0}".format(err))
+                sys.exit(1)
             self._app_logging()
         self.log.info("starting up")
         for section in self._config_dict.keys():
@@ -213,12 +217,12 @@ class PyLogChop(object):
         while not self._terminate:
             self._process_message()
         self.log.info("shutting down worker threads")
-        for worker in self._worker.keys():
-            self._worker_stop(worker)
+        for _worker in self._worker.keys():
+            self._worker_stop(_worker)
         self.log.info("shutdown signal send to worker threads")
         self.log.info("waiting for worker threads to terminate")
-        for worker in self._worker.keys():
-            self._worker_join(worker)
+        for _worker in self._worker.keys():
+            self._worker_join(_worker)
         self.log.info("all worker threads gone")
         self.log.info("cleanup up message queue")
         while True:
@@ -246,17 +250,24 @@ class PyLogChop(object):
             return
         file = source.rstrip(':source')
         conf = self._config_dict[source]
-        worker = Worker(
+        encoding = conf.get('encoding', 'utf-8')
+        try:
+            codecs.lookup(encoding)
+        except LookupError:
+            self.log.fatal("encoding {0} not found for source {1}: not starting worker".format(encoding, source))
+            return
+        _worker = Worker(
             file=file, msgqueue=self._deque,
             tags=conf['tags'],
             template=conf['template'],
             syslog_facility=conf['syslog_facility'],
             syslog_severity=conf['syslog_severity'],
             syslog_tag=conf['syslog_tag'],
-            regex=conf['regex']
+            regex=conf['regex'],
+            encoding=encoding
         )
-        worker.start()
-        self._worker[source] = worker
+        _worker.start()
+        self._worker[source] = _worker
         self.log.info("worker: {0} running".format(source))
 
     def _worker_stop(self, source):
@@ -270,14 +281,21 @@ class PyLogChop(object):
             self.log.error("skipping worker {0} because of broken configuration".format(source))
             return
         conf = self._config_dict[source]
-        worker = self._worker[source]
-        worker.tags = conf['tags']
-        worker.tags_dict = conf['tags']
-        worker.template = conf['template']
-        worker.syslog_facility = conf['syslog_facility']
-        worker.syslog_severity = conf['syslog_severity']
-        worker.syslog_tag = conf['syslog_tag']
-        worker.regex = conf['regex']
+        _worker = self._worker[source]
+        encoding = conf.get('encoding', 'utf-8')
+        if _worker.encoding is not encoding:
+            self.log.info("encoding has changed, restarting worker {0}".format(source))
+            _worker.terminate = True
+            _worker.join()
+            self._worker_start(source)
+            return
+        _worker.tags = conf['tags']
+        _worker.tags_dict = conf['tags']
+        _worker.template = conf['template']
+        _worker.syslog_facility = conf['syslog_facility']
+        _worker.syslog_severity = conf['syslog_severity']
+        _worker.syslog_tag = conf['syslog_tag']
+        _worker.regex = conf['regex']
         self.log.info("done reloading configuration for worker {0}".format(source))
 
     def _worker_join(self, source):
