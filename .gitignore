@@ -1,0 +1,10 @@
+*.py[cod]
+*$py.class
+docs/_build/
+__pycache__/
+# Editor/ IDE
+*.sw[po]
+.project
+.pydevproject
+.idea
+.vscode/
