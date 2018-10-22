@@ -4,7 +4,7 @@ __author__ = 'schlitzer'
 CHECK_CONFIG_MAIN = {
     "type": "object",
     "additionalProperties": False,
-    "required":  [
+    "required": [
         "dlog_file",
     ],
     "properties": {
@@ -17,10 +17,11 @@ CHECK_CONFIG_MAIN = {
     }
 }
 
-CHECK_CONFIG_LOGGING_FILE = {
+CHECK_CONFIG_LOGGING = {}
+CHECK_CONFIG_LOGGING['file:logging'] = {
     "type": "object",
     "additionalProperties": False,
-    "required":  [
+    "required": [
         "file",
         "retention",
         "level"
@@ -44,11 +45,59 @@ CHECK_CONFIG_LOGGING_FILE = {
         },
     }
 }
+CHECK_CONFIG_LOGGING['syslog:logging'] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "address",
+        "level"
+    ],
+    "properties": {
+        "address": {
+            "type": "string"
+        },
+        "syslog_facility": {
+            "type": "string",
+            "enum": [
+                "auth",
+                "authpriv",
+                "cron",
+                "daemon",
+                "ftp",
+                "kern",
+                "lpr",
+                "mail",
+                "news",
+                "syslog",
+                "user",
+                "uucp",
+                "local0",
+                "local1",
+                "local2",
+                "local3",
+                "local4",
+                "local5",
+                "local6",
+                "local7"
+            ]
+        },
+        "level": {
+            "type": "string",
+            "enum": [
+                "CRITICAL",
+                "ERROR",
+                "WARNING",
+                "INFO",
+                "DEBUG"
+            ]
+        },
+    }
+}
 
 CHECK_CONFIG_SOURCE = {
     "type": "object",
     "additionalProperties": False,
-    "required":  [
+    "required": [
         "syslog_facility",
         "syslog_tag",
         "syslog_severity",

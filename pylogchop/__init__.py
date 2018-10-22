@@ -12,7 +12,7 @@ import sys
 import syslog
 import time
 import logging
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler, SysLogHandler
 
 # 3rd party
 import jsonschema
@@ -93,14 +93,27 @@ class PyLogChop(object):
     def _app_logging(self):
         logfmt = logging.Formatter('%(asctime)sUTC - %(threadName)s - %(levelname)s - %(message)s')
         logfmt.converter = time.gmtime
-        aap_level = self.config.get('file:logging', 'level')
-        app_log = self.config.get('file:logging', 'file')
-        app_retention = self.config.getint('file:logging', 'retention')
-        file_handler = TimedRotatingFileHandler(app_log, 'd', 1, app_retention)
-        file_handler.setLevel(aap_level)
-        file_handler.setFormatter(logfmt)
-        self.log.addHandler(file_handler)
+        if 'file:logging' in self._config.sections():
+            log_type = 'file:logging'
+            app_log = self.config.get(log_type, 'file')
+            app_retention = self.config.getint(log_type, 'retention')
+            log_handler = TimedRotatingFileHandler(app_log, 'd', 1, app_retention)
+            log_handler.setFormatter(logfmt)
+            self.log.addHandler(log_handler)
+        elif 'syslog:logging' in self._config.sections():
+            log_type = 'syslog:logging'
+            facility = self.config.get(log_type, 'syslog_facility')
+            address_string = self.config.get(log_type, 'address')
+            address_split = address_string.split(":")
+            if len(address_split) == 2:
+                address = (address_split[0], address_split[0])
+            else:
+                address = (address_split[0])
+            log_handler = SysLogHandler(address=address, facility=facility)
+            self.log.addHandler(log_handler)
 
+        aap_level = self.config.get(log_type, 'level')
+        log_handler.setLevel(aap_level)
         self.log.debug("file logger is up")
 
     def _cfg_open(self, include=None):
@@ -203,13 +216,15 @@ class PyLogChop(object):
         self.log.info("done reloading configuration")
 
     def _run(self):
-        if 'file:logging' in self._config_dict.keys():
-            try:
-                jsonschema.validate(self._config_dict['file:logging'], CHECK_CONFIG_LOGGING_FILE)
-            except jsonschema.exceptions.ValidationError as err:
-                self.log.fatal("invalid file:logging section: {0}".format(err))
-                sys.exit(1)
-            self._app_logging()
+        for log_type in [ 'file:logging' , 'syslog:logging' ]:
+            if log_type in self._config.sections():
+                try:
+                    jsonschema.validate(self._config_dict[log_type], CHECK_CONFIG_LOGGING[log_type])
+                except jsonschema.exceptions.ValidationError as err:
+                    self.log.fatal("invalid file:logging section: {0}".format(err))
+                    sys.exit(1)
+                self._app_logging()
+
         self.log.info("starting up")
         for section in self._config_dict.keys():
             if section.endswith(':source'):
@@ -354,6 +369,7 @@ class PyLogChop(object):
         console_log.setLevel('DEBUG')
         self.log.addHandler(console_log)
         if not self._cfg_open():
+            print("could not process config")
             sys.exit(1)
         daemon = DaemonContext(pidfile=PidFile(self.pid))
         if self.nodaemon:
