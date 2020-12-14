@@ -8,3 +8,7 @@ __pycache__/
 .pydevproject
 .idea
 .vscode/
+.venv
+build/
+dist/
+pylogchop.egg-info/
