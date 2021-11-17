@@ -206,7 +206,7 @@ class PyLogChop(object):
         return msg
 
     def _shrink(self, msg):
-        max_length = int(self.config.get('main', 'max_length'))
+        max_length = int(self.config.get('main', 'max_length', fallback=31000))
         cut = 6
         msgjson = json.dumps(msg) # ensure_ascii=False)
         msgsize = len(msgjson)
