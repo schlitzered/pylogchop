@@ -99,8 +99,11 @@ class PyLogChop(object):
             app_retention = self.config.getint(log_type, 'retention')
             log_handler = TimedRotatingFileHandler(app_log, 'd', 1, app_retention)
             log_handler.setFormatter(logfmt)
+            aap_level = self.config.get(log_type, 'level')
+            log_handler.setLevel(aap_level)
             self.log.addHandler(log_handler)
-        elif 'syslog:logging' in self._config.sections():
+            self.log.debug("file logger is up")
+        if 'syslog:logging' in self._config.sections():
             log_type = 'syslog:logging'
             facility = self.config.get(log_type, 'syslog_facility')
             address_string = self.config.get(log_type, 'address')
@@ -110,11 +113,10 @@ class PyLogChop(object):
             else:
                 address = (address_split[0])
             log_handler = SysLogHandler(address=address, facility=facility)
+            aap_level = self.config.get(log_type, 'level')
+            log_handler.setLevel(aap_level)
             self.log.addHandler(log_handler)
-
-        aap_level = self.config.get(log_type, 'level')
-        log_handler.setLevel(aap_level)
-        self.log.debug("file logger is up")
+            self.log.debug("syslog logger is up")
 
     def _cfg_open(self, include=None):
         config = configparser.ConfigParser()
