@@ -1,0 +1,12 @@
+LICENSE.txt
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+pep3143daemon/__init__.py
+pep3143daemon/daemon.py
+pep3143daemon/pidfile.py
+pep3143daemon.egg-info/PKG-INFO
+pep3143daemon.egg-info/SOURCES.txt
+pep3143daemon.egg-info/dependency_links.txt
+pep3143daemon.egg-info/top_level.txt

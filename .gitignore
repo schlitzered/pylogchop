@@ -12,3 +12,4 @@ __pycache__/
 build/
 dist/
 pylogchop.egg-info/
+venv/

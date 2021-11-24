@@ -1,0 +1,7 @@
+#!/Users/sschultchen/keep/PycharmProjects/pylogchop/venv/bin/python
+# EASY-INSTALL-DEV-SCRIPT: 'pylogchop==0.0.7','pylogchop'
+__requires__ = 'pylogchop==0.0.7'
+__import__('pkg_resources').require('pylogchop==0.0.7')
+__file__ = '/Users/sschultchen/keep/PycharmProjects/pylogchop/contrib/pylogchop'
+with open(__file__) as f:
+    exec(compile(f.read(), __file__, 'exec'))
