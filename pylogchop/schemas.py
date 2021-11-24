@@ -13,6 +13,9 @@ CHECK_CONFIG_MAIN = {
         },
         "include": {
             "type": "string",
+        },
+        "max_length": {
+            "type": "integer",
         }
     }
 }

@@ -183,6 +183,49 @@ class PyLogChop(object):
                     pass
         return result
 
+    @staticmethod
+    def _shrink_list(msg):
+        last_line = msg.pop()
+        if last_line == '...':
+            last_line = msg.pop()
+        if len(last_line) > 3:
+            msg.append("...")
+
+    @staticmethod
+    def _shrink_dict(msg):
+        cut = 6
+        fieldlen = { field: len(json.dumps(msg[field])) for field in msg}
+        fieldlen_list = sorted(fieldlen.items(), key=lambda item: item[1])
+        field_key, field_len = fieldlen_list.pop()
+        if isinstance(msg[field_key], str):
+            msg[field_key] = msg[field_key][0:-cut] + "..."
+        elif isinstance(msg[field_key], dict):
+            msg[field_key] = PyLogChop._shrink_dict(msg[field_key])
+        elif isinstance(msg[field_key], list):
+            PyLogChop._shrink_list(msg[field_key])
+        else:
+            raise ValueError("could not shrink field {} with type {}".format(field_key, type(msg[field_key])))
+        return msg
+
+    def _shrink(self, msg):
+        max_length = int(self.config.get('main', 'max_length', fallback=31000))
+        cut = 6
+        msgjson = json.dumps(msg) # ensure_ascii=False)
+        msgsize = len(msgjson)
+        while msgsize >= max_length:
+            if isinstance(msg, list):
+                self._shrink_list(msg)
+            elif isinstance(msg, dict):
+                self._shrink_dict(msg)
+            elif isinstance(msg, str):
+                msg[field_key] = msg[field_key][0:-cut-3] + "..."
+                break
+            else:
+                raise ValueError("could not ")
+            msgjson = json.dumps(msg)
+            msgsize = len(msgjson)
+        return msgjson
+
     def _process_message(self):
         try:
             msg = self._deque.popleft()
@@ -190,7 +233,7 @@ class PyLogChop(object):
             facility = msg['facility']
             severity = msg['severity']
             syslog.openlog(tag, 0, getattr(syslog, facility))
-            syslog.syslog(getattr(syslog, severity), json.dumps(msg['payload']))
+            syslog.syslog(getattr(syslog, severity), self._shrink(msg['payload']))
             syslog.closelog()
             return True
         except IndexError:
